@@ -6,6 +6,7 @@ const networkInfo = document.getElementById("network-info");
 const tokenAddress = "0x4f5d4a27625cd12c8582e0ea390542a787d5d8f2";
 let tokenABI, tokenContract;
 let provider, signer, account;
+let betIds = [];
 
 // Attach click event listener to the connect button
 connectButton.addEventListener("click", connectToWallet);
@@ -55,7 +56,7 @@ async function connectToWallet() {
   }
 }
 
-// function to load ABI and initialize contract instance
+// Function to load ABI and initialize contract instance
 async function loadContractInfo(connectedTo) {
   if (!tokenABI) {
     tokenABI = await loadABI("TestingBettingExchangeToken.json");
@@ -78,16 +79,80 @@ async function loadContractInfo(connectedTo) {
   } catch (error) {
     console.error("Error fetching token decimals:", error);
   }
+
+  try {
+    const bets = await fetchAvailableBets();
+    betIds = [];
+    for (let i = 0; i < bets.length; i++) {
+      betIds.push(Number(bets[i]));
+    }
+    console.log("AVAILABLE BETS:", betIds);
+  } catch (error) {
+    console.error("Error fetching available bets:", error);
+  }
+
+  try {
+    populateAvailableBets();
+  } catch {
+    console.error("Error populating availiable bets:", error);
+  }
+
   console.log("END OF CONTRACT INFO");
+}
+
+async function fetchAvailableBets() {
+  const bets = await tokenContract.getAvailableBets();
+  return bets;
+}
+
+async function populateAvailableBets() {
+  const betsContainer = document.getElementById("available-bets");
+
+  // Clearing out the default text if there are available bets
+  if (betIds.length > 0) {
+    betsContainer.innerHTML = "";
+  }
+
+  try {
+    const betsDetails = await Promise.all(
+      betIds.map((betId) => tokenContract.readBet(betId))
+    );
+
+    if (betsDetails.length === 0) {
+      betsContainer.innerHTML = "No available bets at the moment.";
+      return;
+    }
+
+    betsDetails.forEach((betDetail, index) => {
+      const betElement = document.createElement("div");
+      betElement.className = "bet";
+      betElement.textContent = `Bet ID: ${betIds[index]} - Detail: ${betDetail}`;
+
+      // Adding a Click Event to each Bet Element
+      betElement.addEventListener("click", function () {
+        alert(`Bet ID ${betIds[index]} clicked!`);
+        // Replace the alert with any action you want to perform when a bet is clicked.
+      });
+
+      betsContainer.appendChild(betElement);
+    });
+  } catch (error) {
+    console.error("Error fetching bet details:", error);
+    betsContainer.innerHTML = "Error fetching available bets.";
+  }
 }
 
 async function loadABI(filename) {
   try {
     const response = await fetch(`./abis/${filename}`);
+    if (!response.ok) {
+      throw Error(`HTTP error! status: ${response.status}`);
+    }
     const json = await response.json();
     return json;
   } catch (error) {
     console.error(`Error loading ABI: ${filename}`, error);
+    throw error; // rethrowing the error after logging it, so it can be handled by the caller if needed
   }
 }
 
@@ -129,7 +194,7 @@ function getNetworkName(chainId) {
 
 // Attach listeners if wallet is detected and provide fallback provider if none is detected
 if (typeof window.ethereum !== "undefined") {
-  console.log("WALLET FOUND")
+  console.log("WALLET FOUND");
   provider = new ethers.BrowserProvider(window.ethereum);
   // Listener for changes in the connected account
   window.ethereum.on("accountsChanged", async function (accounts) {
@@ -160,9 +225,8 @@ if (typeof window.ethereum !== "undefined") {
     handleChainChanged(decimalChainId);
   });
 } else {
-    console.log("NO WALLET FOUND");
-    provider = new ethers.JsonRpcProvider('https://public-node.testnet.rsk.co/');
+  console.log("NO WALLET FOUND");
+  provider = new ethers.JsonRpcProvider("https://public-node.testnet.rsk.co/");
 }
 
 loadContractInfo(provider); // load contract info on page load with the read-only provider if MetaMask is not installed.
-
