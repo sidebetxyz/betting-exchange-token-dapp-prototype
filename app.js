@@ -2,12 +2,15 @@
 const connectButton = document.getElementById("connect-button");
 const accountInfo = document.getElementById("account-info");
 const networkInfo = document.getElementById("network-info");
+const form = document.getElementById("bet-form");
 
 const tokenAddress = "0x4f5d4a27625cd12c8582e0ea390542a787d5d8f2";
+const DEFAULT_ORACLE_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 let tokenABI, tokenContract;
 let provider, signer, account;
 let betIds = [];
-
+console.log(provider);
 // Attach click event listener to the connect button
 connectButton.addEventListener("click", connectToWallet);
 
@@ -21,7 +24,12 @@ async function connectToWallet() {
 
   try {
     // Create an ethers.js provider instance
-    provider = new ethers.BrowserProvider(window.ethereum);
+    provider = null;
+    console.log(provider);
+
+    provider = await new ethers.BrowserProvider(window.ethereum);
+    console.log("P2", provider);
+
     // Get the signer from the provider
     signer = await provider.getSigner();
     // Get the connected account address from the signer
@@ -46,9 +54,11 @@ async function connectToWallet() {
       console.log("Connected, but chainId is null!");
     }
 
+    tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
     await loadContractInfo(signer); //
 
     console.log("END OF INIT");
+    console.log(provider);
 
     // Error out if initialization fails
   } catch (error) {
@@ -58,6 +68,8 @@ async function connectToWallet() {
 
 // Function to load ABI and initialize contract instance
 async function loadContractInfo(connectedTo) {
+  console.log(provider);
+
   if (!tokenABI) {
     tokenABI = await loadABI("TestingBettingExchangeToken.json");
   }
@@ -92,9 +104,15 @@ async function loadContractInfo(connectedTo) {
   }
 
   try {
-    populateAvailableBets();
+    await populateAvailableBets();
   } catch {
     console.error("Error populating availiable bets:", error);
+  }
+
+  try {
+    await populateUserBalance();
+  } catch {
+    console.error("Error populating BET balance:", error);
   }
 
   console.log("END OF CONTRACT INFO");
@@ -139,6 +157,53 @@ async function populateAvailableBets() {
   } catch (error) {
     console.error("Error fetching bet details:", error);
     betsContainer.innerHTML = "Error fetching available bets.";
+  }
+}
+
+async function populateUserBalance() {
+  if (account && tokenContract) {
+    // Check if account is defined and tokenContract is initialized
+    try {
+      const balance = await tokenContract.balanceOf(account);
+      const balanceElement = document.getElementById("bet-balance");
+      console.log(balance);
+      balanceElement.textContent = `Balance: ${ethers.formatUnits(
+        balance,
+        "ether"
+      )} BET`;
+    } catch (error) {
+      console.error("Error updating user balance:", error);
+    }
+  } else {
+    // You may want to update the balance displayed to '0' or some placeholder when no account is connected.
+    const balanceElement = document.getElementById("bet-balance");
+    balanceElement.textContent = `Connect Wallet to view Balance`;
+  }
+}
+
+async function createBet(betAmount, oracleAddress) {
+  try {
+    // Convert betAmount to wei or the smallest denomination of your token
+    const amount = ethers.parseUnits(betAmount, "ether"); // or 'wei' if the amount is in wei
+    console.log(amount);
+    console.log(tokenContract);
+
+    // Assuming your smart contract has a function named `createBet` that takes betAmount and oracleAddress as parameters
+    // Adjust accordingly to match your smart contract function's name and parameters
+    const tx = await tokenContract.createBet(amount, oracleAddress);
+
+    // Wait for transaction confirmation
+    const receipt = await tx.wait();
+
+    // Log the transaction receipt
+    console.log("Transaction Receipt:", receipt);
+
+    await loadContractInfo(signer);
+
+    // Optionally, update UI elements here to reflect the creation of the new bet
+  } catch (error) {
+    console.error("Error creating bet:", error);
+    // Handle the error appropriately in your UI
   }
 }
 
@@ -205,7 +270,10 @@ if (typeof window.ethereum !== "undefined") {
     } else {
       handleAccountsChanged(accounts[0]);
       try {
+        console.log(provider);
         provider = new ethers.BrowserProvider(window.ethereum);
+        console.log(provider);
+
         signer = await provider.getSigner(); // get the new signer
         tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer); // create a new contract instance with the new signer
         loadContractInfo(signer);
@@ -228,5 +296,20 @@ if (typeof window.ethereum !== "undefined") {
   console.log("NO WALLET FOUND");
   provider = new ethers.JsonRpcProvider("https://public-node.testnet.rsk.co/");
 }
+
+// Create Bet form event listener
+form.addEventListener("submit", async function (e) {
+  e.preventDefault(); // prevents the default form submission behavior
+
+  const betAmount = document.getElementById("bet-amount").value;
+  let oracleAddress = document.getElementById("oracle-address").value || null; // or a default address if needed
+
+  if (!oracleAddress) {
+    oracleAddress = DEFAULT_ORACLE_ADDRESS; // if oracleAddress is blank, set it to the default oracle address
+  }
+
+  // Call the function to interact with the smart contract
+  await createBet(betAmount, oracleAddress);
+});
 
 loadContractInfo(provider); // load contract info on page load with the read-only provider if MetaMask is not installed.

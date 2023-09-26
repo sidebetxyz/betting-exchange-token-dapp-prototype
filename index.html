@@ -18,11 +18,38 @@
     <button id="connect-button">Connect Wallet</button>
     <p id="account-info">Not connected</p>
     <p id="network-info">Unknown Network</p>
+    <p id="bet-balance">Unknown Balance</p>
 
     <main>
       <section>
         <h2>Available Bets</h2>
         <div id="available-bets">No available bets at the moment.</div>
+      </section>
+
+      <section>
+        <h2>Create a Bet</h2>
+        <form id="bet-form">
+          <div class="form-group">
+            <label for="bet-amount">Testing Bet Amount (TBET):</label>
+            <input
+              type="number"
+              id="bet-amount"
+              placeholder="Enter bet amount"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="oracle-address">Oracle Address (optional):</label>
+            <input
+              type="text"
+              id="oracle-address"
+              placeholder="Enter oracle address or leave empty"
+            />
+          </div>
+          <div class="form-group">
+            <button id="create-bet" type="submit">Create Bet</button>
+          </div>
+        </form>
       </section>
     </main>
     <script src="app.js"></script>
