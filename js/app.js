@@ -139,10 +139,22 @@ async function fetchAvailableBets() {
 
 async function populateAvailableBets() {
   const betsContainer = document.getElementById("available-bets");
+  betsContainer.innerHTML = "";
 
-  if (betIds.length > 0) {
-    betsContainer.innerHTML = "";
-  }
+  // Create a table
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  ["Bet ID", "Amount", "Alice", "Oracle"].forEach((header) => {
+    const th = document.createElement("th");
+    th.textContent = header;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+  betsContainer.appendChild(table);
 
   try {
     const betsDetails = await Promise.all(
@@ -150,52 +162,36 @@ async function populateAvailableBets() {
     );
 
     if (betsDetails.length === 0) {
-      betsContainer.innerHTML = "No available bets at the moment.";
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.textContent = "No available bets at the moment.";
+      cell.colSpan = 4;
+      row.appendChild(cell);
+      tbody.appendChild(row);
       return;
     }
 
-    // Creating table element
-    const table = document.createElement("table");
-    // Creating table header row
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    ["Bet ID", "Alice", "Amount"].forEach((header) => {
-      const th = document.createElement("th");
-      th.textContent = header;
-      headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    // Creating table body
-    const tbody = document.createElement("tbody");
     betsDetails.forEach((betDetail, index) => {
-      // Use the index to get the id from the betIds array.
-      const id = betIds[index];
-      const { alice, amount } = betDetail; // Destructure the other properties from the betDetail object
+      const { alice, amount, oracle } = betDetail;
       const truncatedAlice = truncateAddress(alice);
       const formattedAmount = formatWeiToEther(amount);
+      const truncatedOracle = truncateAddress(oracle);
 
-      // Creating table row for each bet
       const row = document.createElement("tr");
-      [id, truncatedAlice, formattedAmount].forEach((data) => {
+      const id = betIds[index];
+
+      // Adjusting the order of data
+      [id, formattedAmount, truncatedAlice, truncatedOracle].forEach((data) => {
         const td = document.createElement("td");
         td.textContent = data;
         row.appendChild(td);
       });
 
-      row.addEventListener("click", function () {
-        alert(`Bet ID ${id} clicked!`);
-      });
-
       tbody.appendChild(row);
     });
-    table.appendChild(tbody);
-
-    betsContainer.appendChild(table);
   } catch (error) {
     console.error("Error fetching bet details:", error);
-    betsContainer.innerHTML = "Error fetching available bets.";
+    betsContainer.innerHTML = "<div>Error fetching available bets.</div>";
   }
 }
 
@@ -230,7 +226,8 @@ async function populateUserOpenBetsControlPanel() {
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
-  ["Bet ID", "Details", "Actions"].forEach((header) => {
+  // Modify headers
+  ["Bet ID", "Amount", "Oracle", "Actions"].forEach((header) => {
     const th = document.createElement("th");
     th.textContent = header;
     headerRow.appendChild(th);
@@ -252,7 +249,7 @@ async function populateUserOpenBetsControlPanel() {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
         cell.textContent = "You have no bets.";
-        cell.colSpan = 3;
+        cell.colSpan = 4;
         row.appendChild(cell);
         tbody.appendChild(row);
         return;
@@ -261,22 +258,24 @@ async function populateUserOpenBetsControlPanel() {
       userBets.forEach(async (betId) => {
         const betDetail = await tokenContract.readBet(betId);
 
-        const { alice, amount } = betDetail;
-        const truncatedAlice = truncateAddress(alice);
+        const { alice, amount, oracle } = betDetail;
         const formattedAmount = formatWeiToEther(amount);
+        const truncatedOracle = truncateAddress(oracle);
 
         const row = document.createElement("tr");
 
+        // Create cells and append in desired order
         const idCell = document.createElement("td");
         idCell.textContent = betId;
         row.appendChild(idCell);
 
-        const detailCell = document.createElement("td");
-        detailCell.innerHTML = `
-          Alice: ${truncatedAlice} <br/>
-          Amount: ${formattedAmount}
-        `;
-        row.appendChild(detailCell);
+        const amountCell = document.createElement("td");
+        amountCell.textContent = formattedAmount;
+        row.appendChild(amountCell);
+
+        const oracleCell = document.createElement("td");
+        oracleCell.textContent = truncatedOracle;
+        row.appendChild(oracleCell);
 
         const actionCell = document.createElement("td");
 

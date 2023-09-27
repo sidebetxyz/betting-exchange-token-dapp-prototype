@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Side₿et Betting Exchange Token Prototype</title>
     <link
       rel="apple-touch-icon"
@@ -21,14 +22,12 @@
       href="./public/favicon-16x16.png"
     />
     <link rel="manifest" href="./public/site.webmanifest" />
-
     <link rel="stylesheet" href="./css/reset.css" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&display=swap"
     />
     <link rel="stylesheet" href="./css/styles.css" />
-
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"
       integrity="sha512-i/G7kLmYAnT7Q0oBL5EryMwK+9sGtncvmvXt/8Q7EUvgCU8pt3OJvHAu9It5lOvOCqDbgqS9Qikpwk6NTFVe1A=="
@@ -36,25 +35,29 @@
       referrerpolicy="no-referrer"
     ></script>
   </head>
+
   <body>
-    <header>
-      <section>
-        <div class="gradient-section">
-          <div id="title-container">
-            <h1>Side₿et</h1>
-            <h3>Betting Exchange Token Prototype</h3>
-            <button id="connect-button">Connect Wallet</button>
-          </div>
-        </div>
-      </section>
-      <section id="main-header-container">
-        <div id="info-container">
+    <header class="gradient-section">
+      <div id="title-container">
+        <h1>Side₿et</h1>
+      </div>
+      <div id="description-container">
+        <h3>Betting Exchange Token Prototype</h3>
+      </div>
+      <div id="wallet-container">
+        <button id="connect-button">Connect Wallet</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="main-header-container">
+        <section id="info-container">
           <h2>Connection Details</h2>
           <p id="account-info">Not connected</p>
           <p id="network-info">Unknown Network</p>
           <p id="bet-balance">Connect Wallet to view Balance</p>
-        </div>
-        <div id="create-bet-container">
+        </section>
+        <section id="create-bet-container">
           <h2>Create a Bet</h2>
           <form id="bet-form">
             <div class="form-group">
@@ -78,19 +81,19 @@
               <button id="create-bet" type="submit">Create Bet</button>
             </div>
           </form>
-        </div>
-      </section>
-    </header>
+        </section>
+      </div>
 
-    <main>
       <section>
         <h2>Available Bets</h2>
         <div id="available-bets">No available bets at the moment.</div>
       </section>
+
       <section>
         <h2>My Active Bets</h2>
         <div id="active-bets">You have no active bets.</div>
       </section>
+
       <section>
         <h2>Bets Control Panel</h2>
         <div id="user-bets"></div>
