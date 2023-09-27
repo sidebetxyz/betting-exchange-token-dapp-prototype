@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Wallet Connection</title>
+    <title>Side₿et Betting Exchange Token Prototype</title>
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -15,15 +15,23 @@
     ></script>
   </head>
   <body>
-    <button id="connect-button">Connect Wallet</button>
-    <p id="account-info">Not connected</p>
-    <p id="network-info">Unknown Network</p>
-    <p id="bet-balance">Unknown Balance</p>
+    <header>
+      <h1>Side₿et Betting Exchange Token Prototype</h1>
+      <button id="connect-button">Connect Wallet</button>
+      <p id="account-info">Not connected</p>
+      <p id="network-info">Unknown Network</p>
+      <p id="bet-balance">Connect Wallet to view Balance</p>
+    </header>
 
     <main>
       <section>
         <h2>Available Bets</h2>
         <div id="available-bets">No available bets at the moment.</div>
+      </section>
+
+      <section>
+        <h2>My Active Bets</h2>
+        <div id="active-bets">You have no active bets.</div>
       </section>
 
       <section>
@@ -43,13 +51,26 @@
             <input
               type="text"
               id="oracle-address"
-              placeholder="Enter oracle address or leave empty"
+              placeholder="Enter address or   blank"
             />
           </div>
           <div class="form-group">
             <button id="create-bet" type="submit">Create Bet</button>
           </div>
         </form>
+      </section>
+
+      <section>
+        <h2>Bets Control Panel</h2>
+        <div id="user-bets">
+          <div class="bet-actions">
+            <p>Sample Bet #12345</p>
+            <button data-action="updateOracle" data-bet-id="12345">
+              Update Oracle
+            </button>
+            <button data-action="cancelBet" data-bet-id="12345">Cancel</button>
+          </div>
+        </div>
       </section>
     </main>
     <script src="app.js"></script>

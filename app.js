@@ -115,6 +115,20 @@ async function loadContractInfo(connectedTo) {
     console.error("Error populating BET balance:", error);
   }
 
+  try {
+    await populateUserBets();
+    console.log("HIT POP USER BETS");
+  } catch {
+    console.error("Error populating user bets:", error);
+  }
+
+  try {
+    await populateActiveBets();
+    console.log("HIT POP ACTIVE BETS")
+  } catch {
+    console.error("Error populating user bets:", error);
+  }
+
   console.log("END OF CONTRACT INFO");
 }
 
@@ -178,6 +192,97 @@ async function populateUserBalance() {
     // You may want to update the balance displayed to '0' or some placeholder when no account is connected.
     const balanceElement = document.getElementById("bet-balance");
     balanceElement.textContent = `Connect Wallet to view Balance`;
+  }
+}
+
+async function populateUserBets() {
+  const userBetsContainer = document.getElementById("user-bets");
+
+  // Clear any previous bets
+  userBetsContainer.innerHTML = "";
+
+  if (account && betIds.length > 0) {
+    try {
+      const userBetsDetails = await Promise.all(
+        betIds.map(async (betId) => {
+          const betDetail = await tokenContract.readBet(betId);
+          if (betDetail[0].toLowerCase() === account.toLowerCase())
+            return { betId, betDetail }; // Checking betDetail[0] for userAddress
+          return null;
+        })
+      );
+
+      const filteredUserBets = userBetsDetails.filter((bet) => bet !== null);
+
+      if (filteredUserBets.length === 0) {
+        userBetsContainer.innerHTML =
+          "<div>No bets available for this user at the moment.</div>";
+        return;
+      }
+
+      filteredUserBets.forEach(({ betId, betDetail }) => {
+        const betActionElement = document.createElement("div");
+        betActionElement.className = "bet-actions";
+
+        const betInfoParagraph = document.createElement("p");
+        betInfoParagraph.textContent = `Bet ID: ${betId} - Detail: ${betDetail}`; // Adjust if you have a better way to display bet details
+        betActionElement.appendChild(betInfoParagraph);
+
+        const updateOracleButton = document.createElement("button");
+        updateOracleButton.setAttribute("data-action", "updateOracle");
+        updateOracleButton.setAttribute("data-bet-id", betId);
+        updateOracleButton.textContent = "Update Oracle";
+        betActionElement.appendChild(updateOracleButton);
+
+        const cancelBetButton = document.createElement("button");
+        cancelBetButton.setAttribute("data-action", "cancelBet");
+        cancelBetButton.setAttribute("data-bet-id", betId);
+        cancelBetButton.textContent = "Cancel";
+        betActionElement.appendChild(cancelBetButton);
+
+        userBetsContainer.appendChild(betActionElement);
+      });
+    } catch (error) {
+      console.error("Error fetching user bet details:", error);
+      userBetsContainer.innerHTML = "<div>Error fetching user bets.</div>";
+    }
+  } else {
+    userBetsContainer.innerHTML =
+      "<div>Connect wallet to view your bets.</div>";
+  }
+}
+
+async function populateActiveBets() {
+  const activeBetsContainer = document.getElementById("active-bets");
+
+  // Clear any previous active bets
+  activeBetsContainer.innerHTML = "";
+
+  if (account) {
+    try {
+      // Call getActiveBetsForUser with the connected account
+      const activeBets = await tokenContract.getActiveBetsForUser(account);
+      console.log(activeBets);
+      // Check if the user has any active bets
+      if (activeBets.length === 0) {
+        activeBetsContainer.innerHTML = "<div>You have no active bets.</div>";
+        return;
+      }
+
+      // Loop through the active bets and create elements to display them
+      activeBets.forEach(async (betId) => {
+        const betDetail = await tokenContract.readBet(betId);
+        const betInfoParagraph = document.createElement("p");
+        betInfoParagraph.textContent = `Bet ID: ${betId} - Detail: ${betDetail}`; // Adjust if you have a better way to display bet details
+        activeBetsContainer.appendChild(betInfoParagraph);
+      });
+    } catch (error) {
+      console.error("Error fetching active bets details:", error);
+      activeBetsContainer.innerHTML = "<div>Error fetching active bets.</div>";
+    }
+  } else {
+    activeBetsContainer.innerHTML =
+      "<div>Connect wallet to view your active bets.</div>";
   }
 }
 
