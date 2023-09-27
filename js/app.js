@@ -4,13 +4,13 @@ const accountInfo = document.getElementById("account-info");
 const networkInfo = document.getElementById("network-info");
 const form = document.getElementById("bet-form");
 
-const tokenAddress = "0x4f5d4a27625cd12c8582e0ea390542a787d5d8f2";
+const tokenAddress = "0x9828a5ae9b83a56d20576bf8a53bed6259b731c1";
 const DEFAULT_ORACLE_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 let tokenABI, tokenContract;
 let provider, signer, account;
 let betIds = [];
-console.log(provider);
+
 // Attach click event listener to the connect button
 connectButton.addEventListener("click", connectToWallet);
 
@@ -116,15 +116,15 @@ async function loadContractInfo(connectedTo) {
   }
 
   try {
-    await populateUserBets();
-    console.log("HIT POP USER BETS");
+    await populateUserMyActiveBetsPanel();
+    console.log("FIN POP ACTIVE BETS");
   } catch {
     console.error("Error populating user bets:", error);
   }
 
   try {
-    await populateActiveBets();
-    console.log("HIT POP ACTIVE BETS")
+    await populateUserOpenBetsControlPanel();
+    console.log("FIN POP USER BETS");
   } catch {
     console.error("Error populating user bets:", error);
   }
@@ -140,7 +140,6 @@ async function fetchAvailableBets() {
 async function populateAvailableBets() {
   const betsContainer = document.getElementById("available-bets");
 
-  // Clearing out the default text if there are available bets
   if (betIds.length > 0) {
     betsContainer.innerHTML = "";
   }
@@ -155,19 +154,45 @@ async function populateAvailableBets() {
       return;
     }
 
-    betsDetails.forEach((betDetail, index) => {
-      const betElement = document.createElement("div");
-      betElement.className = "bet";
-      betElement.textContent = `Bet ID: ${betIds[index]} - Detail: ${betDetail}`;
+    // Creating table element
+    const table = document.createElement("table");
+    // Creating table header row
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    ["Bet ID", "Alice", "Amount"].forEach((header) => {
+      const th = document.createElement("th");
+      th.textContent = header;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
 
-      // Adding a Click Event to each Bet Element
-      betElement.addEventListener("click", function () {
-        alert(`Bet ID ${betIds[index]} clicked!`);
-        // Replace the alert with any action you want to perform when a bet is clicked.
+    // Creating table body
+    const tbody = document.createElement("tbody");
+    betsDetails.forEach((betDetail, index) => {
+      // Use the index to get the id from the betIds array.
+      const id = betIds[index];
+      const { alice, amount } = betDetail; // Destructure the other properties from the betDetail object
+      const truncatedAlice = truncateAddress(alice);
+      const formattedAmount = formatWeiToEther(amount);
+
+      // Creating table row for each bet
+      const row = document.createElement("tr");
+      [id, truncatedAlice, formattedAmount].forEach((data) => {
+        const td = document.createElement("td");
+        td.textContent = data;
+        row.appendChild(td);
       });
 
-      betsContainer.appendChild(betElement);
+      row.addEventListener("click", function () {
+        alert(`Bet ID ${id} clicked!`);
+      });
+
+      tbody.appendChild(row);
     });
+    table.appendChild(tbody);
+
+    betsContainer.appendChild(table);
   } catch (error) {
     console.error("Error fetching bet details:", error);
     betsContainer.innerHTML = "Error fetching available bets.";
@@ -195,55 +220,108 @@ async function populateUserBalance() {
   }
 }
 
-async function populateUserBets() {
-  const userBetsContainer = document.getElementById("user-bets");
+async function populateUserOpenBetsControlPanel() {
+  console.log("PANEL BETS");
 
-  // Clear any previous bets
+  const userBetsContainer = document.getElementById("user-bets");
   userBetsContainer.innerHTML = "";
 
-  if (account && betIds.length > 0) {
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  ["Bet ID", "Details", "Actions"].forEach((header) => {
+    const th = document.createElement("th");
+    th.textContent = header;
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+  userBetsContainer.appendChild(table);
+
+  if (account) {
     try {
-      const userBetsDetails = await Promise.all(
-        betIds.map(async (betId) => {
-          const betDetail = await tokenContract.readBet(betId);
-          if (betDetail[0].toLowerCase() === account.toLowerCase())
-            return { betId, betDetail }; // Checking betDetail[0] for userAddress
-          return null;
-        })
-      );
+      const userBets = await tokenContract.getOpenBetsForUser(account);
+      console.log("OPEN BETS", userBets);
 
-      const filteredUserBets = userBetsDetails.filter((bet) => bet !== null);
-
-      if (filteredUserBets.length === 0) {
-        userBetsContainer.innerHTML =
-          "<div>No bets available for this user at the moment.</div>";
+      if (userBets.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.textContent = "You have no bets.";
+        cell.colSpan = 3;
+        row.appendChild(cell);
+        tbody.appendChild(row);
         return;
       }
 
-      filteredUserBets.forEach(({ betId, betDetail }) => {
-        const betActionElement = document.createElement("div");
-        betActionElement.className = "bet-actions";
+      userBets.forEach(async (betId) => {
+        const betDetail = await tokenContract.readBet(betId);
 
-        const betInfoParagraph = document.createElement("p");
-        betInfoParagraph.textContent = `Bet ID: ${betId} - Detail: ${betDetail}`; // Adjust if you have a better way to display bet details
-        betActionElement.appendChild(betInfoParagraph);
+        const { alice, amount } = betDetail;
+        const truncatedAlice = truncateAddress(alice);
+        const formattedAmount = formatWeiToEther(amount);
 
-        const updateOracleButton = document.createElement("button");
-        updateOracleButton.setAttribute("data-action", "updateOracle");
-        updateOracleButton.setAttribute("data-bet-id", betId);
-        updateOracleButton.textContent = "Update Oracle";
-        betActionElement.appendChild(updateOracleButton);
+        const row = document.createElement("tr");
 
-        const cancelBetButton = document.createElement("button");
-        cancelBetButton.setAttribute("data-action", "cancelBet");
-        cancelBetButton.setAttribute("data-bet-id", betId);
-        cancelBetButton.textContent = "Cancel";
-        betActionElement.appendChild(cancelBetButton);
+        const idCell = document.createElement("td");
+        idCell.textContent = betId;
+        row.appendChild(idCell);
 
-        userBetsContainer.appendChild(betActionElement);
+        const detailCell = document.createElement("td");
+        detailCell.innerHTML = `
+          Alice: ${truncatedAlice} <br/>
+          Amount: ${formattedAmount}
+        `;
+        row.appendChild(detailCell);
+
+        const actionCell = document.createElement("td");
+
+        const updateButton = document.createElement("button");
+        updateButton.textContent = "Update Oracle";
+        updateButton.dataset.action = "updateOracle";
+        updateButton.dataset.betId = betId;
+        updateButton.addEventListener("click", async () => {
+          const newOracleAddress = prompt("Enter the new oracle address:");
+          if (!newOracleAddress) return;
+          try {
+            await tokenContract.updateBetOracle(betId, newOracleAddress);
+            console.log(
+              `Oracle for bet ${betId} updated to ${newOracleAddress} successfully.`
+            );
+          } catch (error) {
+            console.error(`Error updating oracle for bet ${betId}:`, error);
+          }
+        });
+        actionCell.appendChild(updateButton);
+
+        const cancelButton = document.createElement("button");
+        cancelButton.textContent = "Cancel";
+        cancelButton.dataset.action = "cancelBet";
+        cancelButton.dataset.betId = betId;
+        cancelButton.addEventListener("click", async () => {
+          const confirmCancel = confirm(
+            `Are you sure you want to cancel bet ${betId}?`
+          );
+          if (!confirmCancel) return;
+          try {
+            await tokenContract.cancelBet(betId);
+            console.log(`Bet ${betId} canceled successfully.`);
+          } catch (error) {
+            console.error(`Error canceling bet ${betId}:`, error);
+          }
+        });
+        actionCell.appendChild(cancelButton);
+
+        row.appendChild(actionCell);
+
+        tbody.appendChild(row);
       });
     } catch (error) {
-      console.error("Error fetching user bet details:", error);
+      console.error("Error fetching user bets details:", error);
       userBetsContainer.innerHTML = "<div>Error fetching user bets.</div>";
     }
   } else {
@@ -252,29 +330,57 @@ async function populateUserBets() {
   }
 }
 
-async function populateActiveBets() {
+async function populateUserMyActiveBetsPanel() {
   const activeBetsContainer = document.getElementById("active-bets");
 
   // Clear any previous active bets
   activeBetsContainer.innerHTML = "";
 
+  // Create a table
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  ["Bet ID", "Alice", "Amount"].forEach((header) => {
+    const th = document.createElement("th");
+    th.textContent = header;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+  activeBetsContainer.appendChild(table);
+
   if (account) {
     try {
-      // Call getActiveBetsForUser with the connected account
       const activeBets = await tokenContract.getActiveBetsForUser(account);
-      console.log(activeBets);
-      // Check if the user has any active bets
+
       if (activeBets.length === 0) {
-        activeBetsContainer.innerHTML = "<div>You have no active bets.</div>";
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.textContent = "You have no active bets.";
+        cell.colSpan = 3;
+        row.appendChild(cell);
+        tbody.appendChild(row);
         return;
       }
 
-      // Loop through the active bets and create elements to display them
       activeBets.forEach(async (betId) => {
         const betDetail = await tokenContract.readBet(betId);
-        const betInfoParagraph = document.createElement("p");
-        betInfoParagraph.textContent = `Bet ID: ${betId} - Detail: ${betDetail}`; // Adjust if you have a better way to display bet details
-        activeBetsContainer.appendChild(betInfoParagraph);
+        const { alice, amount } = betDetail;
+        const truncatedAlice = truncateAddress(alice);
+        const formattedAmount = formatWeiToEther(amount);
+
+        const row = document.createElement("tr");
+
+        // Add cells to the row
+        [betId, truncatedAlice, formattedAmount].forEach((data) => {
+          const td = document.createElement("td");
+          td.textContent = data;
+          row.appendChild(td);
+        });
+
+        tbody.appendChild(row);
       });
     } catch (error) {
       console.error("Error fetching active bets details:", error);
@@ -360,6 +466,17 @@ function getNetworkName(chainId) {
     default:
       return "Unknown Network";
   }
+}
+
+// Function to truncate an address
+function truncateAddress(address) {
+  return address.length > 13
+    ? address.substring(0, 6) + "..." + address.substring(address.length - 4)
+    : address;
+}
+
+function formatWeiToEther(wei) {
+  return ethers.formatEther(wei);
 }
 
 // Attach listeners if wallet is detected and provide fallback provider if none is detected
