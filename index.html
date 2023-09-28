@@ -74,7 +74,7 @@
               <input
                 type="text"
                 id="oracle-address"
-                placeholder="Enter address or   blank"
+                placeholder="Enter Oracle address (if any) or leave blank"
               />
             </div>
             <div class="form-group">
@@ -86,17 +86,84 @@
 
       <section>
         <h2>Available Bets</h2>
-        <div id="available-bets">No available bets at the moment.</div>
+        <table id="available-bets-table">
+          <thead>
+            <tr>
+              <th>Bet ID</th>
+              <th>Stake</th>
+              <th>Maker</th>
+              <th>Oracle</th>
+              <th>Payout</th>
+            </tr>
+          </thead>
+          <tbody id="available-bets">
+            <tr id="no-available-bets-row" class="default-row">
+              <td colspan="5">No available bets to display.</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <section>
         <h2>My Active Bets</h2>
-        <div id="active-bets">You have no active bets.</div>
+        <table id="active-bets-table">
+          <thead>
+            <tr>
+              <th>Bet ID</th>
+              <th>Stake</th>
+              <th>Taker</th>
+              <th>Oracle</th>
+              <th>Payout</th>
+            </tr>
+          </thead>
+          <tbody id="active-bets">
+            <tr id="no-bets-row" class="default-row">
+              <td colspan="5">Connect wallet to view your active bets.</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <section>
-        <h2>Bets Control Panel</h2>
-        <div id="user-bets"></div>
+        <h2>My Pending Bets</h2>
+        <table id="user-bets-table">
+          <thead>
+            <tr>
+              <th>Bet ID</th>
+              <th>Stake</th>
+              <th>Oracle</th>
+              <th>Payout</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="user-bets">
+            <tr id="no-user-bets-row" class="default-row">
+              <td colspan="5">Connect wallet to view your pending bets.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>My Past Bets</h2>
+        <table id="past-bets-table">
+          <thead>
+            <tr>
+              <th>Bet ID</th>
+              <th>Stake</th>
+              <th>Maker</th>
+              <th>Taker</th>
+              <th>Oracle</th>
+              <th>Outcome</th>
+              <th>Payout</th>
+            </tr>
+          </thead>
+          <tbody id="past-bets">
+            <tr id="no-past-bets-row" class="default-row">
+              <td colspan="7">Connect wallet to view your past bets.</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
     </main>
 
