@@ -170,7 +170,6 @@ async function populateAvailableBetsMarket() {
       const row = document.createElement("tr");
       const id = betIds[index];
 
-      // Creating cells for Bet ID, Stake, Maker, Oracle, and Payout, and appending them to the row
       [
         id,
         formattedAmount,
@@ -183,22 +182,25 @@ async function populateAvailableBetsMarket() {
         row.appendChild(td);
       });
 
-      // Creating a cell for Actions and appending to the row
       const actionCell = document.createElement("td");
       const takeBetButton = document.createElement("button");
-      takeBetButton.textContent = "Take Bet";
       takeBetButton.dataset.betId = id;
 
-      takeBetButton.addEventListener("click", async () => {
-        try {
-          // Calling the acceptBet function of the contract with the associated betId.
-          await tokenContract.acceptBet(id);
-          // Repopulating the available bets after the bet has been taken.
-          populateAvailableBetsMarket();
-        } catch (error) {
-          console.error("Error taking bet:", error);
-        }
-      });
+      if (account && account.toLowerCase() === alice.toLowerCase()) {
+        takeBetButton.textContent = "Take Bet"; // Change text if desired
+        takeBetButton.disabled = true; // Disabling the button
+        takeBetButton.style.backgroundColor = "#A9A9A9"; // A muted color, adapt as needed to suit your palette
+      } else {
+        takeBetButton.textContent = "Take Bet";
+        takeBetButton.addEventListener("click", async () => {
+          try {
+            await tokenContract.acceptBet(id);
+            populateAvailableBetsMarket();
+          } catch (error) {
+            console.error("Error taking bet:", error);
+          }
+        });
+      }
 
       actionCell.appendChild(takeBetButton);
       row.appendChild(actionCell);
@@ -392,26 +394,26 @@ async function populateUserPastBets() {
       const betDetail = await tokenContract.readBet(id);
       const { alice, amount, bob, oracle } = betDetail;
       const formattedAmount = formatTokenAmount(amount);
+      const truncatedAlice = truncateAddress(alice);
+      const truncatedBob = bob ? truncateAddress(bob) : "N/A";
       const truncatedOracle = truncateAddress(oracle);
       let payoutAmount;
       let formattedPayoutAmount;
 
       if (status === "Won") {
-        payoutAmount = BigInt(amount) * 2n; // Example calculation for a won bet.
+        payoutAmount = BigInt(amount) * 2n;
         formattedPayoutAmount = `+${formatTokenAmount(
           payoutAmount.toString()
-        )} BET`;
+        )}`; // Removed TBET
       } else if (status === "Lost") {
         payoutAmount = BigInt(amount);
         formattedPayoutAmount = `-${formatTokenAmount(
           payoutAmount.toString()
-        )} BET`;
+        )}`; // Removed TBET
       } else {
         // Canceled
         payoutAmount = 0n;
-        formattedPayoutAmount = `${formatTokenAmount(
-          payoutAmount.toString()
-        )} BET`;
+        formattedPayoutAmount = `${formatTokenAmount(payoutAmount.toString())}`; // Removed TBET
       }
 
       const row = document.createElement("tr");
@@ -419,8 +421,8 @@ async function populateUserPastBets() {
       [
         id,
         formattedAmount,
-        alice,
-        bob || "N/A",
+        truncatedAlice, // Updated
+        truncatedBob, // Updated
         truncatedOracle,
         status,
         formattedPayoutAmount,
