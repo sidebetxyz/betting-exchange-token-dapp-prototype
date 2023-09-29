@@ -1,5 +1,5 @@
 // Get references to HTML elements
-const connectButton = document.getElementById("connect-button");
+const connectButton = document.getElementById("connect-wallet-button");
 const accountInfo = document.getElementById("account-info");
 const networkInfo = document.getElementById("network-info");
 const form = document.getElementById("bet-form");
@@ -129,15 +129,11 @@ async function populateUserBalance() {
     try {
       const balance = await tokenContract.balanceOf(account);
       const balanceElement = document.getElementById("bet-balance");
-      balanceElement.textContent = `Balance: ${ethers.formatUnits(
-        balance,
-        "ether"
-      )} BET`;
+      balanceElement.textContent = `Balance: ${formatTokenAmount(balance)}`;
     } catch (error) {
       console.error("Error updating user balance:", error);
     }
   } else {
-    // You may want to update the balance displayed to '0' or some placeholder when no account is connected.
     const balanceElement = document.getElementById("bet-balance");
     balanceElement.textContent = `Connect Wallet to view Balance`;
   }
@@ -148,6 +144,7 @@ async function populateAvailableBetsMarket() {
   betsContainer.innerHTML = ""; // Clear existing rows.
 
   try {
+    const betIds = await tokenContract.getAvailableBets();
     const betsDetails = await Promise.all(
       betIds.map((betId) => tokenContract.readBet(betId))
     );
@@ -156,7 +153,7 @@ async function populateAvailableBetsMarket() {
       const row = document.createElement("tr");
       const cell = document.createElement("td");
       cell.textContent = "No available bets to display.";
-      cell.colSpan = 5; // Adjust colspan according to the number of columns.
+      cell.colSpan = 6;
       row.appendChild(cell);
       betsContainer.appendChild(row);
       return;
@@ -165,23 +162,46 @@ async function populateAvailableBetsMarket() {
     betsDetails.forEach((betDetail, index) => {
       const { alice, amount, oracle } = betDetail;
       const truncatedAlice = truncateAddress(alice);
-      const formattedAmount = formatWeiToEther(amount);
+      const formattedAmount = formatTokenAmount(amount);
       const truncatedOracle = truncateAddress(oracle);
+      const payoutAmount = BigInt(amount) * 2n;
+      const formattedPayoutAmount = formatTokenAmount(payoutAmount.toString());
 
       const row = document.createElement("tr");
       const id = betIds[index];
 
-      // Adjusting the order of data to match the new structure.
-      [id, formattedAmount, truncatedAlice, truncatedOracle].forEach((data) => {
+      // Creating cells for Bet ID, Stake, Maker, Oracle, and Payout, and appending them to the row
+      [
+        id,
+        formattedAmount,
+        truncatedAlice,
+        truncatedOracle,
+        formattedPayoutAmount,
+      ].forEach((data) => {
         const td = document.createElement("td");
         td.textContent = data;
         row.appendChild(td);
       });
 
-      const payoutCell = document.createElement("td");
-      payoutCell.textContent = "Payout Placeholder"; // Replace with actual payout if available.
-      row.appendChild(payoutCell);
+      // Creating a cell for Actions and appending to the row
+      const actionCell = document.createElement("td");
+      const takeBetButton = document.createElement("button");
+      takeBetButton.textContent = "Take Bet";
+      takeBetButton.dataset.betId = id;
 
+      takeBetButton.addEventListener("click", async () => {
+        try {
+          // Calling the acceptBet function of the contract with the associated betId.
+          await tokenContract.acceptBet(id);
+          // Repopulating the available bets after the bet has been taken.
+          populateAvailableBetsMarket();
+        } catch (error) {
+          console.error("Error taking bet:", error);
+        }
+      });
+
+      actionCell.appendChild(takeBetButton);
+      row.appendChild(actionCell);
       betsContainer.appendChild(row);
     });
   } catch (error) {
@@ -189,7 +209,7 @@ async function populateAvailableBetsMarket() {
     const errorRow = document.createElement("tr");
     const errorCell = document.createElement("td");
     errorCell.textContent = "Error loading available bets.";
-    errorCell.colSpan = 5; // Adjust colspan according to the number of columns.
+    errorCell.colSpan = 6;
     errorRow.appendChild(errorCell);
     betsContainer.appendChild(errorRow);
   }
@@ -197,18 +217,13 @@ async function populateAvailableBetsMarket() {
 
 async function populateUserActiveBets() {
   const activeBetsContainer = document.getElementById("active-bets");
+  activeBetsContainer.innerHTML = ""; // Clear any previously added rows.
 
-  // Clear any previously added rows except for the default one.
-  while (activeBetsContainer.firstChild) {
-    activeBetsContainer.removeChild(activeBetsContainer.firstChild);
-  }
-
-  // If the wallet is not connected
   if (!account) {
     const connectWalletRow = document.createElement("tr");
     const connectWalletCell = document.createElement("td");
     connectWalletCell.textContent = "Connect wallet to view your active bets.";
-    connectWalletCell.colSpan = 5; // Adjusted to match the number of columns in your table.
+    connectWalletCell.colSpan = 5;
     connectWalletRow.appendChild(connectWalletCell);
     activeBetsContainer.appendChild(connectWalletRow);
     return;
@@ -216,48 +231,46 @@ async function populateUserActiveBets() {
 
   try {
     const activeBets = await tokenContract.getActiveBetsForUser(account);
-
-    // If there are no active bets
     if (activeBets.length === 0) {
       const row = document.createElement("tr");
       const cell = document.createElement("td");
       cell.textContent = "No active bets to display.";
-      cell.colSpan = 5; // Adjusted to match the number of columns in your table.
+      cell.colSpan = 5;
       row.appendChild(cell);
       activeBetsContainer.appendChild(row);
       return;
     }
 
-    // If there are active bets
-    activeBets.forEach(async (betId) => {
+    for (const betId of activeBets) {
       const betDetail = await tokenContract.readBet(betId);
       const { alice, amount, oracle } = betDetail;
       const truncatedAlice = truncateAddress(alice);
-      const formattedAmount = formatWeiToEther(amount);
+      const formattedAmount = formatTokenAmount(amount);
       const truncatedOracle = truncateAddress(oracle);
+      const payoutAmount = BigInt(amount) * 2n;
+      const formattedPayoutAmount = formatTokenAmount(payoutAmount.toString());
 
       const row = document.createElement("tr");
-
-      [betId, formattedAmount, truncatedAlice, truncatedOracle].forEach(
-        (data) => {
-          const td = document.createElement("td");
-          td.textContent = data;
-          row.appendChild(td);
-        }
-      );
-
-      const payoutCell = document.createElement("td");
-      payoutCell.textContent = "Payout Placeholder"; // To be replaced with actual payout calculation.
-      row.appendChild(payoutCell);
+      [
+        betId,
+        formattedAmount,
+        truncatedAlice,
+        truncatedOracle,
+        formattedPayoutAmount,
+      ].forEach((data) => {
+        const td = document.createElement("td");
+        td.textContent = data;
+        row.appendChild(td);
+      });
 
       activeBetsContainer.appendChild(row);
-    });
+    }
   } catch (error) {
     console.error("Error fetching active bets details:", error);
     const errorRow = document.createElement("tr");
     const errorCell = document.createElement("td");
     errorCell.textContent = "Error fetching active bets.";
-    errorCell.colSpan = 5; // Adjusted to match the number of columns in your table.
+    errorCell.colSpan = 5;
     errorRow.appendChild(errorCell);
     activeBetsContainer.appendChild(errorRow);
   }
@@ -271,7 +284,7 @@ async function populateUserPendingBets() {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
     cell.textContent = "Connect wallet to view your pending bets.";
-    cell.colSpan = 5; // Adjust colspan according to the number of columns.
+    cell.colSpan = 5;
     row.appendChild(cell);
     userBetsContainer.appendChild(row);
     return;
@@ -290,25 +303,22 @@ async function populateUserPendingBets() {
       return;
     }
 
-    userBets.forEach(async (betId) => {
+    for (const betId of userBets) {
       const betDetail = await tokenContract.readBet(betId);
       const { alice, amount, oracle } = betDetail;
-      const formattedAmount = formatWeiToEther(amount);
+      const formattedAmount = formatTokenAmount(amount);
       const truncatedOracle = truncateAddress(oracle);
+      const payoutAmount = BigInt(amount) * 2n;
+      const formattedPayoutAmount = formatTokenAmount(payoutAmount.toString());
 
       const row = document.createElement("tr");
-
-      // Creating cells for Bet ID, Stake, Oracle and appending them to the row
-      [betId, formattedAmount, truncatedOracle].forEach((data) => {
-        const td = document.createElement("td");
-        td.textContent = data;
-        row.appendChild(td);
-      });
-
-      // Creating a cell for Payout and appending to the row
-      const payoutCell = document.createElement("td");
-      payoutCell.textContent = "Payout Placeholder";
-      row.appendChild(payoutCell);
+      [betId, formattedAmount, truncatedOracle, formattedPayoutAmount].forEach(
+        (data) => {
+          const td = document.createElement("td");
+          td.textContent = data;
+          row.appendChild(td);
+        }
+      );
 
       // Creating a cell for Actions and appending to the row
       const actionCell = document.createElement("td");
@@ -318,7 +328,6 @@ async function populateUserPendingBets() {
       updateButton.textContent = "Update Oracle";
       updateButton.dataset.action = "updateOracle";
       updateButton.dataset.betId = betId;
-      // TODO: Attach Event Listener for updating oracle.
       actionCell.appendChild(updateButton);
 
       // Creating "Cancel" Button
@@ -326,15 +335,11 @@ async function populateUserPendingBets() {
       cancelButton.textContent = "Cancel";
       cancelButton.dataset.action = "cancelBet";
       cancelButton.dataset.betId = betId;
-      // TODO: Attach Event Listener for cancelling bet.
       actionCell.appendChild(cancelButton);
 
-      // Appending actionCell to the row
       row.appendChild(actionCell);
-
-      // Appending the row to the container
       userBetsContainer.appendChild(row);
-    });
+    }
   } catch (error) {
     console.error("Error fetching user bets details:", error);
     const errorRow = document.createElement("tr");
@@ -349,7 +354,7 @@ async function populateUserPendingBets() {
 async function populateUserPastBets() {
   const userPastBetsContainer = document.getElementById("past-bets");
   const noPastBetsRow = document.getElementById("no-past-bets-row");
-  // Clear existing children nodes, except the default row
+
   while (
     userPastBetsContainer.firstChild &&
     userPastBetsContainer.firstChild !== noPastBetsRow
@@ -358,7 +363,6 @@ async function populateUserPastBets() {
   }
 
   if (!account) {
-    // if no account is connected, just show the default row.
     return;
   }
 
@@ -380,24 +384,49 @@ async function populateUserPastBets() {
       return;
     }
 
-    noPastBetsRow.style.display = "none"; // Hide default row
+    noPastBetsRow.style.display = "none";
 
     for (const { id, status } of allBetsIds) {
       const betDetail = await tokenContract.readBet(id);
       const { alice, amount, bob, oracle } = betDetail;
-      const formattedAmount = formatWeiToEther(amount);
+      const formattedAmount = formatTokenAmount(amount);
       const truncatedOracle = truncateAddress(oracle);
+      let payoutAmount;
+      let formattedPayoutAmount;
+
+      if (status === "Won") {
+        payoutAmount = BigInt(amount) * 2n; // Example calculation for a won bet.
+        formattedPayoutAmount = `+${formatTokenAmount(
+          payoutAmount.toString()
+        )} BET`;
+      } else if (status === "Lost") {
+        payoutAmount = BigInt(amount);
+        formattedPayoutAmount = `-${formatTokenAmount(
+          payoutAmount.toString()
+        )} BET`;
+      } else {
+        // Canceled
+        payoutAmount = 0n;
+        formattedPayoutAmount = `${formatTokenAmount(
+          payoutAmount.toString()
+        )} BET`;
+      }
 
       const row = document.createElement("tr");
 
-      // Create and append cells in desired order
-      appendCell(row, id); // Bet ID
-      appendCell(row, formattedAmount); // Stake
-      appendCell(row, alice); // Maker
-      appendCell(row, bob || "N/A"); // Taker
-      appendCell(row, truncatedOracle); // Oracle
-      appendCell(row, status); // Outcome
-      appendCell(row, "N/A"); // Payout (Adjust as per your logic)
+      [
+        id,
+        formattedAmount,
+        alice,
+        bob || "N/A",
+        truncatedOracle,
+        status,
+        formattedPayoutAmount,
+      ].forEach((data) => {
+        const td = document.createElement("td");
+        td.textContent = data;
+        row.appendChild(td);
+      });
 
       userPastBetsContainer.appendChild(row);
     }
@@ -503,10 +532,21 @@ function formatWeiToEther(wei) {
 }
 
 function formatTokenAmount(amountInWei) {
-  const formatted = parseFloat(ethers.utils.formatUnits(amountInWei, 18));
-  return (
-    (formatted < 1 ? formatted.toFixed(18) : Math.trunc(formatted)) + " $BET"
-  );
+  const formatted = parseFloat(ethers.formatUnits(amountInWei, 18));
+  if (Number.isInteger(formatted)) {
+    return formatted + " TBET"; // if whole number, no decimal places
+  } else {
+    const str = formatted.toString();
+    const decimalPart = str.split(".")[1];
+    let truncated = decimalPart;
+    for (let i = decimalPart.length - 1; i >= 0; i--) {
+      if (decimalPart[i] !== "0") {
+        truncated = decimalPart.substring(0, i + 1);
+        break;
+      }
+    }
+    return str.split(".")[0] + "." + truncated + " TBET"; // display with the lowest amount of decimal places
+  }
 }
 
 // Attach listeners if wallet is detected and provide fallback provider if none is detected
