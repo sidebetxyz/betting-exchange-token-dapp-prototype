@@ -284,7 +284,7 @@ async function populateUserPendingBets() {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
     cell.textContent = "Connect wallet to view your pending bets.";
-    cell.colSpan = 5;
+    cell.colSpan = 6;
     row.appendChild(cell);
     userBetsContainer.appendChild(row);
     return;
@@ -297,7 +297,7 @@ async function populateUserPendingBets() {
       const row = document.createElement("tr");
       const cell = document.createElement("td");
       cell.textContent = "You have no pending bets.";
-      cell.colSpan = 5;
+      cell.colSpan = 6;
       row.appendChild(cell);
       userBetsContainer.appendChild(row);
       return;
@@ -306,7 +306,7 @@ async function populateUserPendingBets() {
     for (const betId of userBets) {
       const betDetail = await tokenContract.readBet(betId);
       const { alice, amount, oracle } = betDetail;
-      const formattedAmount = formatTokenAmount(amount);
+      const formattedAmount = formatTokenAmount(amount); // Ensure formatTokenAmount function is defined and imported properly.
       const truncatedOracle = truncateAddress(oracle);
       const payoutAmount = BigInt(amount) * 2n;
       const formattedPayoutAmount = formatTokenAmount(payoutAmount.toString());
@@ -320,27 +320,26 @@ async function populateUserPendingBets() {
         }
       );
 
-      // Creating a cell for Actions and appending to the row
-      const actionCell = document.createElement("td");
-      actionCell.className = "action-cell";
-
       // Creating "Update Oracle" Button
+      const updateCell = document.createElement("td");
       const updateButton = document.createElement("button");
-      updateButton.textContent = "Update Oracle";
+      updateButton.textContent = "Update";
       updateButton.className = "action-button";
       updateButton.dataset.action = "updateOracle";
       updateButton.dataset.betId = betId;
-      actionCell.appendChild(updateButton);
+      updateCell.appendChild(updateButton);
+      row.appendChild(updateCell);
 
       // Creating "Cancel" Button
+      const cancelCell = document.createElement("td");
       const cancelButton = document.createElement("button");
       cancelButton.textContent = "Cancel";
       cancelButton.className = "action-button";
       cancelButton.dataset.action = "cancelBet";
       cancelButton.dataset.betId = betId;
-      actionCell.appendChild(cancelButton);
+      cancelCell.appendChild(cancelButton);
+      row.appendChild(cancelCell);
 
-      row.appendChild(actionCell);
       userBetsContainer.appendChild(row);
     }
   } catch (error) {
@@ -348,7 +347,7 @@ async function populateUserPendingBets() {
     const errorRow = document.createElement("tr");
     const errorCell = document.createElement("td");
     errorCell.textContent = "Error loading pending bets.";
-    errorCell.colSpan = 5;
+    errorCell.colSpan = 6;
     errorRow.appendChild(errorCell);
     userBetsContainer.appendChild(errorRow);
   }
