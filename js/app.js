@@ -322,10 +322,12 @@ async function populateUserPendingBets() {
 
       // Creating a cell for Actions and appending to the row
       const actionCell = document.createElement("td");
+      actionCell.className = "action-cell";
 
       // Creating "Update Oracle" Button
       const updateButton = document.createElement("button");
       updateButton.textContent = "Update Oracle";
+      updateButton.className = "action-button";
       updateButton.dataset.action = "updateOracle";
       updateButton.dataset.betId = betId;
       actionCell.appendChild(updateButton);
@@ -333,6 +335,7 @@ async function populateUserPendingBets() {
       // Creating "Cancel" Button
       const cancelButton = document.createElement("button");
       cancelButton.textContent = "Cancel";
+      cancelButton.className = "action-button";
       cancelButton.dataset.action = "cancelBet";
       cancelButton.dataset.betId = betId;
       actionCell.appendChild(cancelButton);
