@@ -58,6 +58,14 @@ header, main, section {
   padding-top: 0rem;
 }
 
+#info-container {
+  background-color: var(--light-blue);
+  color: var(--dark-text);
+  padding: 10px;
+  border-radius: 4px;
+}
+
+
 .box-container {
   padding: 14px;
   border-radius: 4px;
