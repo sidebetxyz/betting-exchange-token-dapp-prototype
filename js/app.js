@@ -530,12 +530,14 @@ function handleAccountsChanged(account) {
   if (!account) {
     console.log("Please connect to Wallet.");
     accountInfo.textContent = "Not connected";
+    connectButton.textContent = "Connect Wallet"; // Reset the button text
     return;
   }
 
   // Update the accountInfo text content
   const checksumAddress = ethers.getAddress(account);
   accountInfo.textContent = `Connected: ${checksumAddress}`;
+  connectButton.textContent = "Connected"; // Change the button text when connected
 }
 
 // Function to handle changes in the network chainId
