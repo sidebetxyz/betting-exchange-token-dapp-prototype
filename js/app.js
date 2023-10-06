@@ -327,8 +327,29 @@ async function populateUserPendingBets() {
       const updateButton = document.createElement("button");
       updateButton.textContent = "Update";
       updateButton.className = "action-button";
-      updateButton.dataset.action = "updateOracle";
       updateButton.dataset.betId = betId;
+
+      updateButton.addEventListener("click", async function () {
+        const newOracleAddress = prompt("Enter the new Oracle address:");
+        if (newOracleAddress && ethers.isAddress(newOracleAddress)) {
+          // Updated here
+          try {
+            const tx = await tokenContract.updateBetOracle(
+              betId,
+              newOracleAddress
+            );
+            const receipt = await tx.wait();
+            console.log("Oracle Updated:", receipt);
+            // You can call populateUserPendingBets() again to refresh the UI
+            populateUserPendingBets();
+          } catch (error) {
+            console.error("Error updating oracle:", error);
+          }
+        } else {
+          alert("Invalid address provided.");
+        }
+      });
+
       updateCell.appendChild(updateButton);
       row.appendChild(updateCell);
 
@@ -337,8 +358,20 @@ async function populateUserPendingBets() {
       const cancelButton = document.createElement("button");
       cancelButton.textContent = "Cancel";
       cancelButton.className = "action-button";
-      cancelButton.dataset.action = "cancelBet";
       cancelButton.dataset.betId = betId;
+
+      cancelButton.addEventListener("click", async function () {
+        try {
+          const tx = await tokenContract.cancelBet(betId);
+          const receipt = await tx.wait();
+          console.log("Bet Canceled:", receipt);
+          // You can call populateUserPendingBets() again to refresh the UI
+          populateUserPendingBets();
+        } catch (error) {
+          console.error("Error canceling bet:", error);
+        }
+      });
+
       cancelCell.appendChild(cancelButton);
       row.appendChild(cancelCell);
 
